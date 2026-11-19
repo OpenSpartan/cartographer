@@ -1,0 +1,194 @@
+/* Design tokens: OpenSpartan Films' GitHub Primer dark palette and the scales
+   its chrome is built from (films-ui src/tokens.ts), as custom
+   properties. This is the only file with hex literals. Everything else, the
+   canvas too (getComputedStyle), reads these. Loaded first, so the page's
+   first paint is already the background colour. */
+
+html,
+body {
+  background: #0d1117;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* C: surfaces, text, state */
+  --bg: #0d1117;          /* page, canvas, table body */
+  --bg-alpha: #0d1117e0;  /* translucent backdrop over the map */
+  --surface: #161b22;     /* sections, hovered rows and commands, table bands */
+  --raised: #1c2128;      /* menus, popovers, tooltip, key-value group bands */
+  --line: #21262d;        /* hairlines: row rules, separators, bar edges */
+  --border: #30363d;      /* control and floating panel borders */
+  --text: #e6edf3;        /* values, primary text, bright icons */
+  --muted: #8b949e;       /* labels, secondary text */
+  --faint: #7d8590;       /* tertiary text, inactive icons */
+  --dim: #484f58;         /* non-text only: separators, disabled borders, empty tracks */
+  --accent: #1f6feb;      /* active border, primary button border */
+  --accent-bg: #1f6feb22; /* active fill */
+  --link: #58a6ff;        /* links, focus ring */
+  --ok: #3fb950;
+  --err: #f85149;
+  --forge: #d29922;
+  --warn: #d29922;        /* same value as forge, separate meaning */
+  --rare: #a371f7;
+  --team0: #3b82f6;       /* Eagle */
+  --team1: #ef4444;       /* Cobra */
+
+  /* TEAM: by team id, TEAM[id % 8] */
+  --team-0: var(--team0);
+  --team-1: var(--team1);
+  --team-2: #f59e0b;
+  --team-3: #22c55e;
+  --team-4: #a855f7;
+  --team-5: #06b6d4;
+  --team-6: #ec4899;
+  --team-7: #a3e635;
+
+  /* Derived tints, precomputed the way Films' alpha(hex, a) makes them
+     (round(a * 255) as two hex digits), so no CSS needs color-mix() and
+     older Chromium (OBS browser sources) renders the same. */
+  --ok-bg: #3fb9501f;       /* tone fills 0.12 and borders 0.5: tags, danger hover */
+  --ok-bd: #3fb95080;
+  --err-bg: #f851491f;
+  --err-bd: #f8514980;
+  --warn-bg: #d299221f;
+  --warn-bd: #d2992280;
+  --info-bg: #58a6ff1f;     /* the info tone is the link colour */
+  --info-bd: #58a6ff80;
+  --accent-tint: #1f6feb1f; /* the accent tag (LAN) */
+  --accent-bd: #1f6feb80;
+  --team-0-08: #3b82f614;   /* score cell tints: 0.08, and 0.22 for the leader */
+  --team-0-22: #3b82f638;
+  --team-1-08: #ef444414;
+  --team-1-22: #ef444438;
+  --team-2-08: #f59e0b14;
+  --team-2-22: #f59e0b38;
+  --team-3-08: #22c55e14;
+  --team-3-22: #22c55e38;
+  --team-4-08: #a855f714;
+  --team-4-22: #a855f738;
+  --team-5-08: #06b6d414;
+  --team-5-22: #06b6d438;
+  --team-6-08: #ec489914;
+  --team-6-22: #ec489938;
+  --team-7-08: #a3e63514;
+  --team-7-22: #a3e63538;
+  --past-fill: #21262d73;   /* line at 0.45 */
+  --bg-80: #0d1117cc;       /* countdown plates on the map */
+  /* A floating panel's shadow (Films PANEL: 0 8px 24px bg at 0.53). */
+  --shadow-panel: 0 8px 24px #0d111787;
+
+  /* HUD: the map's look, Halo Infinite's tactical map and HUD, sampled
+     from the game (js/hud.js, for the stage, its frame and everything drawn
+     on the map) */
+  --hud-bg: #0e1d27;          /* the TACMAP's navy */
+  --hud-bg-edge: #02070b;     /* its vignette */
+  --hud-dot: #1d2f43;         /* the dot grid */
+  --hud-axis: #16303f;        /* the centre lines */
+  --hud-edge: #7fdefc;        /* terrain's contour edges */
+  --hud-floor-low: #023a5e;   /* terrain on the lowest floor */
+  --hud-floor-high: #035079;  /* on the highest: a deep blue, for marks to read on */
+  --hud-floor-away: #002a4f;  /* floors outside the slice, and a terrain's lowest ground */
+  --hud-floor-peak: #3880aa;  /* a terrain's highest ground */
+  --hud-floor-contour: #5aa6d6; /* a terrain's contour lines */
+  --hud-floor-rim: #ffffff;   /* the floor's outer edge */
+  --hud-accent: #4a9bd3;      /* the HUD's highlight: a selected row, the followed player */
+  --hud-bracket: #4a9bd3b3;   /* the frame's corner brackets */
+  --hud-plate: #07121ad9;     /* a label's plate */
+  --hud-text: #ffffff;
+  --hud-muted: #8d9093;
+  --hud-ink: #05111a;         /* text on the highlight */
+  --hud-shadow: #000000a6;    /* under icons and marks */
+  --hud-bar: #132b3b;         /* a header band (the TACMAP's tab bar) */
+  --hud-rule: #24506b;        /* the lines between a band's cells */
+  --hud-caption: #8cc4e6;     /* a section's tracked caption */
+  --hud-family: "Saira Semi Condensed", system-ui, sans-serif;
+
+  /* MAP: the map's own palette */
+  --map-nlv: #1a1f2e;
+  --map-terrain: #1a2e1a;
+  --map-floor: #2d3748;
+  --map-ramp: #2c5282;
+  --map-prim: #3d4852;
+  --map-wall: #4a5568;
+  --map-column: #718096;
+  --map-cover: #553c2e;
+  --map-blocker: #7b2d2d;
+  --map-door: #5a4a2a;
+  --map-other: #2a2a3a;
+  --map-outline: #000000;
+  --map-flag: #fbbf24;
+  --map-spawn-initial: #22c55e;
+  --map-spawn-respawn: #2a6a4a;
+
+  /* S: spacing. Page gutter s-6, bar padding s-3 s-6, section body s-5. */
+  --s-0: 0;
+  --s-1: 2px;
+  --s-2: 4px;
+  --s-3: 6px;
+  --s-4: 8px;
+  --s-5: 12px;
+  --s-6: 16px;
+  --s-7: 24px;
+  --s-8: 32px;
+  --s-9: 48px;
+
+  /* T: type, as font shorthands. --t-cap always goes with .caps letter-spacing. */
+  --font: system-ui;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --t-cap: 600 10.5px system-ui;
+  --t-xs: 11px system-ui;
+  --t-sm: 12px system-ui;
+  --t-md: 13px system-ui;
+  --t-lg: 15px system-ui;
+  --t-h2: 600 14px system-ui;
+  --t-title: 600 15px/18px system-ui;
+  --t-score: 700 18px system-ui;
+  --t-num: 600 16px system-ui;
+  --t-hero: 600 28px/34px system-ui;
+  --t-stat: 600 22px/1 system-ui;
+  --t-mark: 600 10px/12px system-ui;
+  --t-mono: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --t-badge: 700 9px/11px system-ui;
+
+  /* H: control heights. BAR: bar heights. ROW: row heights. ICON: icon sizes. */
+  --h-xs: 20px;
+  --h-sm: 24px;
+  --h-md: 28px;
+  --h-lg: 36px;
+  --h-xl: 48px;
+  --bar-app: 44px;
+  --bar-mast: 48px;
+  --bar-ribbon: 44px;
+  --bar-tabs: 36px;
+  --bar-strip: 40px;
+  --bar-band: 30px;
+  --bar-legend: 36px;
+  --bar-timeline: 44px;
+  --row-feed: 32px;
+  --row-dense: 32px;
+  --row-table: 36px;
+  --row-compact: 28px;
+  --icon-xs: 11px;
+  --icon-sm: 12px;
+  --icon-md: 14px;
+  --icon-lg: 16px;
+  --icon-xl: 24px;
+
+  /* What stands in the masthead (MAST_H = H.md + 4). */
+  --h-mast: 32px;
+
+  /* RADIUS: 0 in chrome, 2px only on marks of 4px or less. */
+  --radius-none: 0;
+  --radius-mark: 2px;
+
+  /* Observer semantics, all in terms of the tokens above. */
+  --team-none: var(--faint);          /* observers, players with no team */
+  --timer-incoming: var(--link);      /* a pad counting down to its spawn */
+  --pad-weapon: var(--text);
+  --pad-equipment: var(--muted);
+  --vital-shield: var(--link);
+  --vital-health: var(--ok);
+  --vital-overshield: var(--rare);
+  --vital-track: var(--dim);
+}

@@ -1,0 +1,112 @@
+name: CI
+
+# A pull request is tested and linted. A push to main, or a run started by hand, is also built and
+# zipped (the ZIP is the run's artifact). A version tag (1.0.0, 1.2.3-beta.1) builds that version
+# and publishes it as a release.
+on:
+  push:
+    branches: [main]
+    tags: ['[0-9]+.[0-9]+.[0-9]+', '[0-9]+.[0-9]+.[0-9]+-*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A newer push to a pull request replaces its run, but main and tags always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    name: ${{ github.event_name == 'pull_request' && 'check' || 'package' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Version from the tag
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          "CARTOGRAPHER_VERSION=$env:GITHUB_REF_NAME" >> $env:GITHUB_ENV
+
+      # The repositories the build reads, beside this one at the head of their main: libfilmshell
+      # (public, a path dependency), films-ui (public, the shared UI framework the exe embeds) and
+      # film-assets (private, the map data the exe embeds).
+      - name: Check out libfilmshell, films-ui and film-assets
+        shell: pwsh
+        env:
+          # A fine-grained token with read access to OpenSpartan/film-assets (repository secret).
+          FILM_ASSETS_TOKEN: ${{ secrets.FILM_ASSETS_TOKEN }}
+        run: |
+          if (-not $env:FILM_ASSETS_TOKEN) { throw 'The FILM_ASSETS_TOKEN secret is missing: add a token that can read OpenSpartan/film-assets.' }
+          function Clone([string] $name, [string] $url) {
+            $dir = Join-Path $env:GITHUB_WORKSPACE "../$name"
+            git init --quiet $dir
+            git -C $dir fetch --quiet --depth 1 $url main
+            if ($LASTEXITCODE) { throw "Could not fetch $name" }
+            git -C $dir checkout --quiet FETCH_HEAD
+            "$name $(git -C $dir rev-parse --short HEAD)"
+          }
+          Clone libfilmshell https://github.com/OpenSpartan/libfilmshell.git
+          Clone films-ui https://github.com/OpenSpartan/films-ui.git
+          Clone film-assets "https://x-access-token:$($env:FILM_ASSETS_TOKEN)@github.com/OpenSpartan/film-assets.git"
+
+      - name: Install Rust
+        shell: pwsh
+        run: |
+          # The toolchain and components rust-toolchain.toml pins, so CI lints with the same Clippy as local builds.
+          rustup toolchain install
+          rustc --version
+          cargo clippy --version
+
+      - name: Test
+        run: cargo test --release --locked --manifest-path src/host/Cargo.toml
+
+      - name: Clippy
+        run: cargo clippy --release --locked --manifest-path src/host/Cargo.toml --all-targets -- -D warnings
+
+      - name: Build
+        if: github.event_name != 'pull_request'
+        run: cargo build --release --locked --manifest-path src/host/Cargo.toml --bins
+
+      - name: Package
+        if: github.event_name != 'pull_request'
+        id: package
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { $env:GITHUB_SHA.Substring(0, 7) }
+          $name = "cartographer-$version-windows-x64"
+          $stage = Join-Path 'dist' $name
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item src/host/target/release/cartographer.exe, README.md, LICENSE $stage
+          # The images the README shows (each src="assets/..."), and nothing else from assets.
+          $images = [regex]::Matches((Get-Content -Raw README.md), 'src="assets/([^"]+)"') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+          if (-not $images) { throw 'The README shows no images from assets.' }
+          foreach ($file in $images) {
+            $target = Join-Path $stage "assets/$file"
+            New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
+            Copy-Item "assets/$file" $target
+          }
+          Compress-Archive -Path "$stage/*" -DestinationPath "dist/$name.zip"
+          "name=$name" >> $env:GITHUB_OUTPUT
+
+      # The ZIP as the artifact itself (named after it), not a ZIP inside another.
+      - uses: actions/upload-artifact@v7
+        if: github.event_name != 'pull_request'
+        with:
+          path: dist/${{ steps.package.outputs.name }}.zip
+          archive: false
+
+      - name: Release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $flags = if ($env:GITHUB_REF_NAME.Contains('-')) { @('--prerelease') } else { @() }
+          gh release create $env:GITHUB_REF_NAME "dist/${{ steps.package.outputs.name }}.zip" --title $env:GITHUB_REF_NAME --generate-notes @flags

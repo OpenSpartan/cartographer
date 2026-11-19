@@ -1,0 +1,475 @@
+/* The broadcast layout (body[data-layout=broadcast], js/broadcast.js): a
+   stream overlay for OBS or a second screen. The match strip over a map
+   that fills the rest, with no operator chrome. Films' parts (the masthead's
+   joined score cells, the state dot) in the map's Halo HUD look (tokens.css
+   --hud-*: a header band, the HUD's tracked capitals), scaled up from one
+   factor so 1920x1080 and 1280x720 frame the same picture.
+
+   --bc is 1px at 1080 tall, 0.667px at 720: every size here is
+   calc(N * var(--bc)) for N px at 1080, and text and marks get a floor so
+   720 stays readable. Registered as a length so the map can read it as a
+   number: parseFloat(getComputedStyle(document.body).getPropertyValue('--bc'))
+   (1 outside this layout). */
+
+@property --bc {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 1px;
+}
+
+body[data-layout="broadcast"] {
+  --bc: calc(100vh / 1080);
+}
+
+/* Only in this layout. */
+.bstrip,
+.bs-return {
+  display: none;
+}
+
+/* What the layout drops: the app bar, the masthead (the strip stands in
+   for it), the ribbon, the
+   panel, the legend and the live bar, and over the map the status strips and
+   the empty state (the strip already says whether the feed is live and
+   the match is up, without the operator's technical detail). The map
+   takes the rest of the page. */
+body[data-layout="broadcast"] #appbar,
+body[data-layout="broadcast"] #masthead,
+body[data-layout="broadcast"] #ribbon,
+body[data-layout="broadcast"] #panel,
+body[data-layout="broadcast"] #legend,
+body[data-layout="broadcast"] #livebar,
+body[data-layout="broadcast"] .map-strips,
+body[data-layout="broadcast"] .map-empty {
+  display: none;
+}
+
+/* ── The strip: identity, score, state ──────────────────────────────────
+   Three columns, the outer two equal, so the score sits in the middle of
+   the frame whatever the map's name. */
+
+body[data-layout="broadcast"] .bstrip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "id score status";
+  align-items: center;
+  column-gap: max(16px, calc(24 * var(--bc)));
+  flex: none;
+  height: max(48px, calc(72 * var(--bc)));
+  padding: 0 max(16px, calc(24 * var(--bc)));
+  overflow: hidden;
+  background: linear-gradient(var(--hud-bar), var(--hud-bg));
+  border-bottom: 1px solid var(--hud-rule);
+  font-family: var(--hud-family);
+}
+
+body[data-layout="broadcast"] .bstrip .caps {
+  font-family: var(--hud-family);
+}
+
+/* The map's name over the mode and round (Films masthead title and line). */
+.bs-id {
+  grid-area: id;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: max(1px, calc(2 * var(--bc)));
+  min-width: 0;
+}
+
+.bs-title {
+  min-width: 0;
+  font-size: max(16px, calc(26 * var(--bc)));
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hud-text);
+}
+
+.bs-context {
+  display: flex;
+  align-items: center;
+  gap: max(4px, calc(6 * var(--bc)));
+  min-width: 0;
+}
+
+.bs-context > .caps {
+  min-width: 0;
+  font-size: max(11px, calc(15 * var(--bc)));
+  line-height: 1.2;
+  letter-spacing: 0.2em;
+  color: var(--hud-caption);
+}
+
+.bs-mode {
+  display: contents;
+}
+
+.bs-mode > .mode-icon {
+  flex: none;
+  width: max(14px, calc(18 * var(--bc)));
+  height: max(14px, calc(18 * var(--bc)));
+}
+
+/* The score: Films' joined cells at 56 tall (masthead cells x 1.75). */
+.bs-score {
+  grid-area: score;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.bstrip .bs-cells {
+  --cells-h: max(36px, calc(56 * var(--bc)));
+  --pip: max(6px, calc(9 * var(--bc)));
+  --pip-gap: max(3px, calc(4 * var(--bc)));
+  display: inline-grid;
+  grid-auto-flow: column;
+  max-width: 100%;
+  background: var(--hud-rule);
+  border-color: var(--hud-rule);
+}
+
+/* Dimmed like the map while the feed is stale or offline: these may be
+   old (broadcast.js sets data-down). */
+.bstrip[data-down] .bs-cells {
+  opacity: 0.55;
+}
+
+.bs-cells > .cell {
+  gap: max(8px, calc(14 * var(--bc)));
+  padding: 0 max(12px, calc(20 * var(--bc)));
+  background: linear-gradient(var(--team-tint, transparent), var(--team-tint, transparent)), var(--hud-bg);
+  box-shadow: inset max(3px, calc(4 * var(--bc))) 0 0 var(--team-color, var(--hud-rule));
+}
+
+.bs-cells > .cell[data-bright] {
+  background: linear-gradient(var(--team-tint-hi, transparent), var(--team-tint-hi, transparent)), var(--hud-bg);
+}
+
+/* The clock: a neutral cell, the label plate's dark, no rule. */
+.bs-cells > .bs-clock {
+  justify-content: center;
+  background: var(--hud-plate);
+  box-shadow: none;
+}
+
+.bs-clock-value {
+  display: inline-block;
+  flex: none;
+  min-width: 5ch;               /* room for 00:00: the cell never resizes */
+  text-align: center;
+  font-size: max(18px, calc(32 * var(--bc)));
+  font-weight: 600;
+  line-height: 1;
+  color: var(--hud-text);
+}
+
+/* A figure's slot (dom.js setFigures): the face has no tabular figures. */
+.bstrip .fig {
+  display: inline-block;
+  width: 1ch;
+  text-align: center;
+}
+
+/* A team: its name as a caption over a pip per player, then the score
+   at the cell's far edge. Dim unless leading (or level). */
+.bs-team {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: max(4px, calc(7 * var(--bc)));
+  min-width: 0;
+  margin-right: auto;
+}
+
+.bs-name {
+  max-width: calc(220 * var(--bc));
+  font-size: max(11px, calc(16 * var(--bc)));
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hud-muted);
+}
+
+.bs-value {
+  flex: none;
+  width: 3ch;                   /* three figures, tabular: 9 to 10 moves nothing */
+  font-size: max(20px, calc(40 * var(--bc)));
+  font-weight: 700;
+  line-height: 1;
+  text-align: right;
+  color: var(--hud-muted);
+}
+
+.bs-cells > .cell[data-bright] .bs-name,
+.bs-cells > .cell[data-bright] .bs-value {
+  color: var(--hud-text);
+}
+
+.bstrip .bs-won {
+  font-size: max(11px, calc(15 * var(--bc)));
+  line-height: 1;
+  color: var(--ok);
+}
+
+/* The line under the name: a pip per player (Films statusDot squares),
+   filled in the team's colour while alive, a hollow outline while dead, and
+   'Won' in its place for the winner. As wide as the biggest team's pips
+   (or the word), as tall as a pip, whatever it holds. */
+.bs-sub {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--pip-gap);
+  width: max(calc(var(--bs-n, 1) * var(--pip) + (var(--bs-n, 1) - 1) * var(--pip-gap)), calc(44 * var(--bc)), 30px);
+  height: var(--pip);
+  overflow: visible;
+}
+
+.bs-pip {
+  flex: none;
+  width: var(--pip);
+  height: var(--pip);
+  border: 1px solid var(--muted);
+  opacity: 0.6;
+}
+
+.bs-pip[data-alive] {
+  background: var(--team-color, var(--muted));
+  border-color: var(--team-color, var(--muted));
+  opacity: 1;
+}
+
+/* Numbered (the map's numbers): each pip a tile holding its player's
+   number, in the ink that reads on the team's colour while alive, muted on
+   the hollow tile while dead. The highlighted player's (the followed or
+   observed one) is ringed in white, as the map rings their head. */
+.bstrip .bs-cells[data-numbers] {
+  --pip: max(16px, calc(22 * var(--bc)));
+  --pip-gap: max(3px, calc(5 * var(--bc)));
+}
+
+.bs-cells[data-numbers] .bs-pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: max(11px, calc(15 * var(--bc)));
+  font-weight: 700;
+  line-height: 1;
+  color: var(--hud-muted);
+}
+
+.bs-cells[data-numbers] .bs-pip[data-alive] {
+  color: var(--team-ink, var(--hud-text));
+}
+
+.bs-cells[data-numbers] .bs-pip[data-lit] {
+  outline: max(2px, calc(2 * var(--bc))) solid var(--hud-text);
+  outline-offset: max(1px, calc(1 * var(--bc)));
+  opacity: 1;
+}
+
+/* Many teams: score and pips only, the rule says whose. */
+.bs-cells[data-many] > .cell {
+  padding: 0 max(8px, calc(14 * var(--bc)));
+}
+
+/* The feed's state: Films' state dot and word (model.js feedTag), and
+   under it feedTag's line while the feed is down ('No update for 6 s'). */
+.bs-status {
+  grid-area: status;
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: max(2px, calc(4 * var(--bc)));
+  min-width: 0;
+  max-width: 100%;
+}
+
+.bs-state {
+  display: inline-flex;
+  align-items: center;
+  gap: max(6px, calc(8 * var(--bc)));
+  font-size: max(12px, calc(17 * var(--bc)));
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hud-text);
+  white-space: nowrap;
+}
+
+.bs-lead {
+  display: inline-flex;
+  align-items: center;
+}
+
+.bs-state .state-dot {
+  width: max(8px, calc(11 * var(--bc)));
+  height: max(8px, calc(11 * var(--bc)));
+}
+
+.bs-state .icon {
+  width: max(12px, calc(17 * var(--bc)));
+  height: max(12px, calc(17 * var(--bc)));
+  color: var(--link);
+}
+
+.bs-detail {
+  max-width: 100%;
+  font-size: max(11px, calc(15 * var(--bc)));
+  line-height: 1.2;
+  color: var(--hud-muted);
+}
+
+.bs-detail:empty {
+  display: none;
+}
+
+/* ── Back to the operator view: unseen until hovered or focused ───────── */
+
+body[data-layout="broadcast"] .bs-return {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 20;
+  display: inline-flex;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+body[data-layout="broadcast"] .bs-return:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  body[data-layout="broadcast"] .bs-return:hover {
+    opacity: 1;
+  }
+}
+
+/* No hover on a touch screen: always there, a little faint, or a phone
+   has no way back. OBS browser sources report hover, so streams never
+   show it. */
+@media (hover: none) {
+  body[data-layout="broadcast"] .bs-return {
+    opacity: 0.7;
+  }
+}
+
+/* ── Map only (body[data-layout=map]): the stage and nothing else ────────
+   For a minimap source in OBS at any size (480x480, 640x360) or a second
+   screen. M toggles it and Escape leaves it (main.js). */
+
+/* Only in this layout. */
+.mo-exit {
+  display: none;
+}
+
+body[data-layout="map"][data-synthetic="true"]::after {
+  content: 'Synthetic';
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  padding: 4px 6px;
+  background: var(--bg-alpha);
+  color: var(--warn);
+  font: var(--t-xs);
+  pointer-events: none;
+}
+
+body[data-layout="map"] #appbar,
+body[data-layout="map"] #masthead,
+body[data-layout="map"] #broadcast,
+body[data-layout="map"] #ribbon,
+body[data-layout="map"] #panel,
+body[data-layout="map"] #legend,
+body[data-layout="map"] #livebar,
+body[data-layout="map"] .map-strips,
+body[data-layout="map"] .map-empty {
+  display: none;
+}
+
+/* The stage takes the whole viewport (the body is 100dvh): no border, no
+   gutter. */
+body[data-layout="map"] .main,
+body[data-layout="map"] .stage {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* ?bg=transparent: no page background, so the map's marks sit over the
+   scene. broadcast.js sets data-bg on <html> and <body> only while in this
+   layout. (The canvas clears to transparent itself.) */
+html[data-bg="transparent"],
+body[data-layout="map"][data-bg="transparent"],
+body[data-layout="map"][data-bg="transparent"] .stage {
+  background: transparent;
+}
+
+/* Under the dark scheme Chromium (OBS's browser source too) paints the
+   canvas dark behind a transparent page, so the scene would not show
+   through. Nothing in this layout needs the dark scheme's controls. */
+html[data-bg="transparent"] {
+  color-scheme: light;
+}
+
+/* The way out: bottom right, unseen until hovered or focused. On touch
+   screens it is always there, a little faint (OBS reports hover, so a stream
+   capture never shows it). */
+body[data-layout="map"] .mo-exit {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 20;
+  display: inline-flex;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+body[data-layout="map"] .mo-exit:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  body[data-layout="map"] .mo-exit:hover {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  body[data-layout="map"] .mo-exit {
+    opacity: 0.7;
+  }
+}
+
+/* ── Narrow frames (not a stream size, but nothing should break) ───────── */
+
+@media (max-width: 959px) {
+  .bs-name {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  body[data-layout="broadcast"] .bstrip {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "id status"
+      "score score";
+    row-gap: 8px;
+    height: auto;
+    padding: 8px 12px;
+  }
+}

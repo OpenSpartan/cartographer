@@ -1,0 +1,861 @@
+/* Base: a plain-CSS port of Films' injected stylesheet (ui/styles.ts) plus the
+   shared parts every view builds with (ui/dom.ts, button.ts, controls.ts,
+   menu.ts, status.ts, section.ts, cells.ts, table.ts). Views compose these
+   classes and do not restyle them. Their own rules live in chrome.css,
+   stage.css, panel.css and broadcast.css. JS builders for the same parts are
+   in js/dom.js (static) and js/controls.js (interactive).
+
+   !important appears only where Films uses it: [hidden], hover over a
+   pressed state, and breakpoint overrides. */
+
+/* ── Root ─────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: var(--t-sm);
+  -webkit-text-size-adjust: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd,
+pre {
+  margin: 0;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+input[type="range"] {
+  accent-color: var(--link);
+}
+
+/* ── Focus: buttons and links get a ring, text inputs a border colour ─── */
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible,
+input[type="range"]:focus-visible,
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+  border-radius: 0;
+}
+
+input:not([type="range"]):not([type="checkbox"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--link) !important;
+}
+
+/* ── Page frame: bars stacked edge to edge over the stage and its panel ─ */
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.main {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  .main {
+    flex-direction: column;
+  }
+}
+
+/* ── Atoms ────────────────────────────────────────────────────────────── */
+
+/* Small-caps muted caption (Films CAPS). */
+.caps {
+  font: var(--t-cap);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Tabular figures for number columns and readouts (Films NUM). */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* One line, cut with an ellipsis. It needs a width or min-width:0. */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono {
+  font: var(--t-mono);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Icons: Lucide SVGs take currentColor. */
+.icon {
+  display: block;
+  flex: none;
+  pointer-events: none;
+}
+
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  background: var(--bg);
+  color: var(--muted);
+  font: var(--t-xs);
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Icon and muted text, with the icon in the text colour (Films chip). */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.chip > .icon {
+  color: var(--text);
+}
+
+/* Square colour sample (Films swatch). Colour from --swatch. */
+.swatch {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--swatch, var(--muted));
+}
+
+/* 8x8 square in a tone (Films statusDot). */
+.state-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--faint);
+}
+
+.state-dot[data-tone="ok"] { background: var(--ok); }
+.state-dot[data-tone="err"] { background: var(--err); }
+.state-dot[data-tone="warn"] { background: var(--warn); }
+.state-dot[data-tone="accent"] { background: var(--link); }
+
+/* A dot and a word (Films stateTag). */
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  color: var(--text);
+  font: var(--t-sm);
+}
+
+/* Status label: 20px, sharp, a tinted fill with a half-alpha border
+   (Films tag). data-tone: muted (default), ok, err, warn, info, accent.
+   data-small: 16px with tabular figures, a muted one only outlined. */
+.tag {
+  --tone: var(--muted);
+  --tone-bg: var(--surface);
+  --tone-bd: var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: var(--h-xs);
+  padding: 0 6px;
+  font: 500 var(--t-xs);
+  color: var(--tone);
+  background: var(--tone-bg);
+  border: 1px solid var(--tone-bd);
+  white-space: nowrap;
+}
+
+.tag[data-tone="ok"] { --tone: var(--ok); --tone-bg: var(--ok-bg); --tone-bd: var(--ok-bd); }
+.tag[data-tone="err"] { --tone: var(--err); --tone-bg: var(--err-bg); --tone-bd: var(--err-bd); }
+.tag[data-tone="warn"] { --tone: var(--warn); --tone-bg: var(--warn-bg); --tone-bd: var(--warn-bd); }
+.tag[data-tone="info"] { --tone: var(--link); --tone-bg: var(--info-bg); --tone-bd: var(--info-bd); }
+.tag[data-tone="accent"] { --tone: var(--link); --tone-bg: var(--accent-tint); --tone-bd: var(--accent-bd); }
+
+.tag[data-small] {
+  height: 16px;
+  padding: 0 4px;
+  font: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.tag[data-small]:not([data-tone]),
+.tag[data-small][data-tone="muted"] {
+  background: transparent;
+  border-color: var(--line);
+}
+
+/* At the masthead's height and the buttons' type size (Films mastTag). */
+.tag[data-mast] {
+  height: var(--h-mast);
+  padding: 0 8px;
+  font: 500 var(--t-sm);
+}
+
+/* Sharp pulsing loading block (Films skel). Size it inline. */
+.skel {
+  display: block;
+  max-width: 100%;
+  height: 12px;
+  background: var(--surface);
+  animation: pulse 1.1s ease-in-out infinite alternate;
+}
+
+/* ── Buttons (Films button.ts) ────────────────────────────────────────────
+   <button class="btn" data-variant="secondary|primary|ghost|danger|tool"
+   data-size="xs|sm|md|lg">. .btn-icon makes it square and icon-only (the
+   title is then its accessible name). aria-pressed makes it a toggle. */
+
+.btn {
+  --h: var(--h-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  height: var(--h);
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: var(--t-md);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.btn > .label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn[data-size="xs"] { --h: var(--h-xs); padding: 0 6px; font: var(--t-sm); }
+.btn[data-size="sm"] { --h: var(--h-sm); padding: 0 8px; font: var(--t-sm); }
+.btn[data-size="lg"] { --h: var(--h-lg); padding: 0 16px; }
+
+.btn.btn-icon {
+  width: var(--h);
+  padding: 0;
+}
+
+.btn[data-variant="primary"] {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.btn[data-variant="ghost"],
+.btn[data-variant="tool"] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+/* A tool command's icon is bright, its label muted. */
+.btn[data-variant="tool"] > .icon {
+  color: var(--text);
+}
+
+.btn[data-variant="danger"] {
+  background: var(--bg);
+  border-color: var(--err);
+  color: var(--err);
+}
+
+/* Toggles: accent when on, muted text when off (Films setActive). */
+.btn[aria-pressed="false"] {
+  color: var(--muted);
+}
+
+.btn[aria-pressed="true"] {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The hovered or focused member of a joined group draws its whole border. */
+[role="group"] > :hover,
+[role="group"] > :focus-visible,
+[role="radiogroup"] > :hover,
+[role="radiogroup"] > :focus-visible {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Tabs (Films tabs) ────────────────────────────────────────────────── */
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+  flex: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  height: var(--h-md);
+  padding: 0 12px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font: var(--t-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tabs[data-compact] .tab {
+  height: var(--bar-tabs);
+  padding: 0 10px;
+}
+
+.tab[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--link);
+}
+
+.tab > .count {
+  font: var(--t-xs);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Floating panels and menus (Films menu.ts) ────────────────────────── */
+
+/* A floating panel's surface: raised, a control's border, sharp, a shadow. */
+.panel-float {
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: var(--shadow-panel);
+  color: var(--text);
+  font: var(--t-md);
+}
+
+/* The fixed layer a dropdown or popover is placed in. */
+.float {
+  position: fixed;
+  z-index: 50;
+  min-width: 180px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 4px 0;
+}
+
+.menu[data-embedded] {
+  border: 0;
+  box-shadow: none;
+  max-height: none;
+}
+
+.menuitem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--h-md);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: var(--t-md);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuitem:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.menuitem > .label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuitem > .hint {
+  margin-left: 12px;
+  font: var(--t-xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* The 12px lead slot: a radio pick's check, or a check item's box. */
+.menuitem > .mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  flex: none;
+  color: var(--link);
+}
+
+.menuitem[role="menuitemcheckbox"] > .mark {
+  height: 12px;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.menuitem[role="menuitemcheckbox"][aria-checked="true"] > .mark {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.menuitem:not([aria-checked="true"]) > .mark > .icon {
+  visibility: hidden;
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--line);
+}
+
+.menu-group {
+  padding: 6px 12px 2px;
+}
+
+.menu-footer {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* ── Status blocks (Films status.ts) ──────────────────────────────────── */
+
+/* Centred placeholder: a faint 24px icon, a title, muted body. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.empty-state > .icon {
+  color: var(--faint);
+}
+
+.empty-state > .title {
+  font: var(--t-h2);
+  color: var(--text);
+}
+
+.empty-state > .body {
+  max-width: 360px;
+  font: var(--t-md);
+  color: var(--muted);
+}
+
+/* ── Frames (Films section.ts, table.ts) ──────────────────────────────── */
+
+/* A band of a panel or card: a CAPS caption over its content (Films band). */
+.band {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* The frame card-like blocks share (Films FRAME). */
+.frame {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+/* Key-value grid (Films kvGrid): groups of <dt>/<dd> under a raised band.
+   <div class="kv" [data-compact]><section><h3 class="kv-band">..</h3>
+   <dl>dt dd ...</dl></section></div>. --kv-key sets the key column. */
+.kv {
+  --kv-key: 200px;
+  min-width: 0;
+}
+
+.kv-band {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--bar-band);
+  margin: 0;
+  padding: 0 12px;
+  background: var(--raised);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
+  font: var(--t-h2);
+  color: var(--text);
+}
+
+.kv dl {
+  display: grid;
+  grid-template-columns: var(--kv-key) minmax(0, 1fr);
+  margin: 0;
+}
+
+.kv dt,
+.kv dd {
+  display: flex;
+  align-items: center;
+  min-height: var(--bar-band);
+  margin: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+
+.kv dt {
+  border-right: 1px solid var(--line);
+  color: var(--muted);
+  font: var(--t-sm);
+}
+
+.kv dd {
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text);
+  font: var(--t-md);
+}
+
+.kv[data-compact] dt,
+.kv[data-compact] dd {
+  min-height: var(--row-compact);
+  padding: 2px 12px;
+}
+
+.kv[data-compact] dd {
+  font: var(--t-sm);
+}
+
+/* The group's last row draws no rule: the frame or the next band closes it. */
+.kv dl > :nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+@media (max-width: 639px) {
+  .kv:not([data-compact]) dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kv:not([data-compact]) dt {
+    min-height: 0;
+    padding-bottom: 0;
+    border-right: 0;
+    border-bottom: 0;
+    font: var(--t-cap);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+}
+
+/* ── Joined cells (Films cells.ts) ────────────────────────────────────────
+   .cells is the row (a hairline between cells), and .cell a cell on a tint
+   of its team's colour with a 3px rule of it (data-bright: the leader's
+   tint). .team-band opens a team: the 3px rule on the surface. The team
+   comes from data-team="0".."7" (id mod 8) or "none". Anything else can
+   set --team-color (and --team-tint) itself. */
+
+[data-team="0"] { --team-color: var(--team-0); --team-tint: var(--team-0-08); --team-tint-hi: var(--team-0-22); --team-ink: var(--team-0-ink); }
+[data-team="1"] { --team-color: var(--team-1); --team-tint: var(--team-1-08); --team-tint-hi: var(--team-1-22); --team-ink: var(--team-1-ink); }
+[data-team="2"] { --team-color: var(--team-2); --team-tint: var(--team-2-08); --team-tint-hi: var(--team-2-22); --team-ink: var(--team-2-ink); }
+[data-team="3"] { --team-color: var(--team-3); --team-tint: var(--team-3-08); --team-tint-hi: var(--team-3-22); --team-ink: var(--team-3-ink); }
+[data-team="4"] { --team-color: var(--team-4); --team-tint: var(--team-4-08); --team-tint-hi: var(--team-4-22); --team-ink: var(--team-4-ink); }
+[data-team="5"] { --team-color: var(--team-5); --team-tint: var(--team-5-08); --team-tint-hi: var(--team-5-22); --team-ink: var(--team-5-ink); }
+[data-team="6"] { --team-color: var(--team-6); --team-tint: var(--team-6-08); --team-tint-hi: var(--team-6-22); --team-ink: var(--team-6-ink); }
+[data-team="7"] { --team-color: var(--team-7); --team-tint: var(--team-7-08); --team-tint-hi: var(--team-7-22); --team-ink: var(--team-7-ink); }
+[data-team="none"] { --team-color: var(--team-none); --team-tint: transparent; --team-tint-hi: transparent; --team-ink: var(--hud-text); }
+
+.cells {
+  display: inline-flex;
+  flex: none;
+  align-items: stretch;
+  gap: 1px;
+  height: var(--cells-h, var(--h-mast));
+  background: var(--line);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.cells[data-fill] {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.cells[data-flush] {
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 12px;
+  background: linear-gradient(var(--team-tint, transparent), var(--team-tint, transparent)), var(--bg);
+  box-shadow: inset 3px 0 0 var(--team-color, var(--line));
+}
+
+.cell[data-bright] {
+  background: linear-gradient(var(--team-tint-hi, transparent), var(--team-tint-hi, transparent)), var(--bg);
+}
+
+/* A plain cell (a clock, a count): the background, no rule. */
+.cell[data-plain] {
+  background: var(--bg);
+  box-shadow: none;
+}
+
+.cell-value {
+  font: var(--t-score);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.cell[data-bright] .cell-value,
+.cell-value[data-bright] {
+  color: var(--text);
+}
+
+.cell-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: var(--t-sm);
+  color: var(--muted);
+}
+
+.cell[data-bright] .cell-name {
+  color: var(--text);
+}
+
+@media (max-width: 639px) {
+  .cell-name {
+    display: none;
+  }
+}
+
+/* A team's emblem (teams.js), white on transparent, before its name. The
+   trailing team's dims with its cell, as in Films' score cells. */
+.team-emblem {
+  flex: none;
+  object-fit: contain;
+}
+
+.cell:not([data-bright]) .team-emblem {
+  opacity: 0.55;
+}
+
+.team-band {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 12px;
+  background: var(--surface);
+  box-shadow: inset 3px 0 0 var(--team-color, var(--line));
+  color: var(--text);
+}
+
+/* ── Breakpoint and visibility hooks (Films UI hooks) ─────────────────── */
+
+@media (max-width: 639px) {
+  .hide-sm {
+    display: none !important;
+  }
+}
+
+/* ── Hover, only where there is a hovering pointer ────────────────────── */
+
+@media (hover: hover) {
+  .btn[data-variant="tool"]:hover:not([aria-pressed="true"]):not(:disabled) {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+  }
+
+  .btn:not([data-variant]):hover:not(:disabled):not([aria-pressed="true"]),
+  .btn[data-variant="secondary"]:hover:not(:disabled):not([aria-pressed="true"]) {
+    border-color: var(--muted) !important;
+  }
+
+  .btn[data-variant="primary"]:hover:not(:disabled) {
+    border-color: var(--link) !important;
+  }
+
+  .btn[data-variant="ghost"]:hover:not(:disabled) {
+    color: var(--text) !important;
+    background: var(--surface) !important;
+  }
+
+  .btn[data-variant="danger"]:hover:not(:disabled) {
+    background: var(--err-bg) !important;
+  }
+
+  .menuitem:hover:not(:disabled) {
+    background: var(--surface);
+  }
+}
+
+/* ── Touch: bigger hit targets without changing the desktop layout ────── */
+
+@media (pointer: coarse) {
+  .btn,
+  .tab {
+    min-height: 32px;
+  }
+
+  .btn[data-size="md"] {
+    min-height: 36px;
+  }
+
+  .btn[data-size="lg"] {
+    min-height: 44px;
+  }
+
+  .menuitem {
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────── */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* A sync icon spinning: every in-progress mark. */
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+/* Reduced motion collapses decorative animation. Spinners keep spinning. */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.spin),
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Game mode icon (js/modes.js): white PNG, dimmed like Films viewer/modeIcons.ts. */
+.mode-icon { flex: none; object-fit: contain; opacity: .85; }

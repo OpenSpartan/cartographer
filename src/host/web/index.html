@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="color-scheme" content="dark">
+<title>OpenSpartan Cartographer</title>
+<!-- tokens.css first: it paints the background before anything else loads. -->
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/chrome.css">
+<link rel="stylesheet" href="/css/stage.css">
+<link rel="stylesheet" href="/css/panel.css">
+<link rel="stylesheet" href="/css/broadcast.css">
+<script type="module" src="/js/main.js"></script>
+</head>
+<body data-layout="operator" data-feed="connecting" data-stale="false">
+<!-- Top to bottom: the app bar, the masthead (or, in the broadcast layout,
+     the broadcast strip), the ribbon, the stage with the
+     panel on its right, the legend, then the live bar. Each region is filled
+     by its view module: chrome.js (appbar, masthead, ribbon, livebar),
+     map.js (stage), panel.js (panel, legend), broadcast.js (broadcast). -->
+
+<!-- region:appbar -->
+<header id="appbar" class="appbar"></header>
+<!-- /region:appbar -->
+
+<!-- region:masthead -->
+<div id="masthead" class="masthead"></div>
+<!-- /region:masthead -->
+
+<!-- region:broadcast -->
+<div id="broadcast" class="bstrip"></div>
+<!-- /region:broadcast -->
+
+<!-- region:ribbon -->
+<div id="ribbon" class="ribbon" role="toolbar" aria-label="Map and view controls"></div>
+<!-- /region:ribbon -->
+
+<main id="main" class="main">
+<!-- region:stage -->
+<div id="stage" class="stage"></div>
+<!-- /region:stage -->
+
+<!-- region:panel -->
+<aside id="panel" class="panel" aria-label="Players, spawn timers and selection"></aside>
+<!-- /region:panel -->
+</main>
+
+<!-- region:legend -->
+<div id="legend" class="legend" hidden></div>
+<!-- /region:legend -->
+
+<!-- region:livebar -->
+<div id="livebar" class="livebar" hidden></div>
+<!-- /region:livebar -->
+</body>
+</html>

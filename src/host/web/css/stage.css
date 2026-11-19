@@ -1,0 +1,537 @@
+/* The map stage (js/map.js): Halo Infinite's tactical map (the TACMAP's
+   navy, its dot grid, a vignette, corner brackets and centre lines) with the
+   canvas filling it, and over it the status strips (top left), the hover
+   card, the loading line and the empty state. Films match viewer:
+   viewer/index.ts stageStrip, viewer/hover.ts.
+   In the broadcast layout map.js sets [data-broadcast] on the stage and the
+   overlays scale by --bc (broadcast.css: a registered length, 1px at 1080,
+   so N px at 1080 is calc(N * var(--bc))). */
+
+/* The HUD's typeface (film-assets fonts/, served by the observer). Served
+   locally, so it blocks rather than swaps: text never reflows when it lands.
+   It has no tabular figures: a ticking number sets each figure in a slot
+   (dom.js setFigures, map.js fillFigures). */
+@font-face {
+  font-family: "Saira Semi Condensed";
+  font-weight: 500;
+  font-display: block;
+  src: url("/api/fonts/saira-semi-condensed-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Saira Semi Condensed";
+  font-weight: 600;
+  font-display: block;
+  src: url("/api/fonts/saira-semi-condensed-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Saira Semi Condensed";
+  font-weight: 700;
+  font-display: block;
+  src: url("/api/fonts/saira-semi-condensed-700.woff2") format("woff2");
+}
+
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle, var(--hud-dot) 1px, transparent 1.4px) center / 24px 24px,
+    radial-gradient(ellipse at center, var(--hud-bg) 40%, var(--hud-bg-edge) 100%);
+}
+
+/* The TACMAP's frame: corner brackets, and faint lines through the centre.
+   Under the map's marks, and not over a scene (?bg=transparent). */
+.map-frame {
+  position: absolute;
+  inset: 12px;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--hud-axis), var(--hud-axis)) center / 1px 100% no-repeat,
+    linear-gradient(var(--hud-axis), var(--hud-axis)) center / 100% 1px no-repeat;
+}
+
+.map-frame > i {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 0 solid var(--hud-bracket);
+}
+
+.map-frame > i:nth-child(1) { left: 0; top: 0; border-width: 2px 0 0 2px; }
+.map-frame > i:nth-child(2) { right: 0; top: 0; border-width: 2px 2px 0 0; }
+.map-frame > i:nth-child(3) { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
+.map-frame > i:nth-child(4) { left: 0; bottom: 0; border-width: 0 0 2px 2px; }
+
+body[data-bg="transparent"] .map-frame {
+  display: none;
+}
+
+/* The map appears whole: hidden while its parts load, then faded in. */
+.map-canvas {
+  transition: opacity 0.3s ease-out;
+}
+
+.map-canvas[data-loading] {
+  opacity: 0;
+}
+
+/* Loading: the HUD's tracked capitals over a sweeping line. Standing by
+   between matches (data-standby) only in the stream layouts, over the
+   TACMAP's own background: the operator has the empty state, and over a
+   scene (?bg=transparent) the map says nothing until there is a match. */
+.map-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.map-loading[hidden],
+body[data-layout="operator"] .map-loading[data-standby],
+html[data-bg="transparent"] .map-loading[data-standby] {
+  display: none;
+}
+
+.map-loading-word {
+  font: 600 13px/1 var(--hud-family);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--hud-accent);
+}
+
+/* Over the next match's map in the lobby: on a label's plate, so it reads
+   over the floor plan. */
+.map-loading[data-standby] .map-loading-word {
+  padding: 6px 8px 6px 12px;
+  background: var(--hud-plate);
+}
+
+.map-loading-bar {
+  position: relative;
+  width: 160px;
+  height: 2px;
+  overflow: hidden;
+  background: var(--hud-axis);
+}
+
+.map-loading-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: var(--hud-edge);
+  animation: map-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes map-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-loading-bar::after { animation: none; width: 100%; opacity: 0.5; }
+}
+
+.stage[data-broadcast] .map-loading {
+  gap: calc(14 * var(--bc, 1px));
+}
+
+.stage[data-broadcast] .map-loading-word {
+  font-size: max(13px, calc(20 * var(--bc, 1px)));
+}
+
+.stage[data-broadcast] .map-loading-bar {
+  width: max(160px, calc(240 * var(--bc, 1px)));
+  height: max(2px, calc(3 * var(--bc, 1px)));
+}
+
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.map-canvas[data-cursor="pointer"] {
+  cursor: pointer;
+}
+
+.map-canvas[data-cursor="grabbing"] {
+  cursor: grabbing;
+}
+
+.map-canvas:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: -2px;
+}
+
+/* No update for a while, or the observer unreachable while an old snapshot
+   still shows: the map dims. */
+body[data-stale="true"] .map-canvas,
+body[data-feed="error"] .map-canvas,
+body[data-feed="waiting"] .map-canvas {
+  opacity: 0.55;
+}
+
+/* ── Status strips (Films stageStrip), stacked top left ───────────────── */
+
+.map-strips {
+  position: absolute;
+  z-index: 4;
+  left: 8px;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: calc(100% - 16px);
+  pointer-events: none;
+}
+
+.map-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 2px 2px 2px 8px;
+  background: var(--bg-alpha);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--link);
+  font: var(--t-sm);
+  color: var(--text);
+  pointer-events: auto;
+}
+
+.map-strip[data-plain] {
+  padding-right: 8px;
+}
+
+.map-strip-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--link);
+}
+
+.map-strip-text {
+  min-width: 0;
+}
+
+.map-strip .btn {
+  flex: none;
+}
+
+.map-strip[data-tone="warn"] {
+  border-left-color: var(--warn);
+}
+
+.map-strip[data-tone="warn"] .map-strip-icon {
+  color: var(--warn);
+}
+
+.map-strip[data-tone="err"] {
+  border-left-color: var(--err);
+}
+
+.map-strip[data-tone="err"] .map-strip-icon {
+  color: var(--err);
+}
+
+.map-strip[data-tone="muted"] {
+  border-left-color: var(--muted);
+}
+
+.map-strip[data-tone="muted"] .map-strip-icon {
+  color: var(--muted);
+}
+
+/* Broadcast: only feed trouble shows. Larger, read from a stream (16px in
+   from the corner, 600 16px at 1080, a 4px rule). */
+.stage[data-broadcast] .map-strips {
+  left: calc(16 * var(--bc, 1px));
+  top: calc(16 * var(--bc, 1px));
+}
+
+.stage[data-broadcast] .map-strip {
+  gap: calc(10 * var(--bc, 1px));
+  min-height: calc(40 * var(--bc, 1px));
+  padding: 0 calc(12 * var(--bc, 1px));
+  border-left-width: max(3px, calc(4 * var(--bc, 1px)));
+  font-size: max(11px, calc(16 * var(--bc, 1px)));
+  font-weight: 600;
+}
+
+.stage[data-broadcast] .map-strip-icon > .icon {
+  width: max(12px, calc(16 * var(--bc, 1px)));
+  height: max(12px, calc(16 * var(--bc, 1px)));
+}
+
+/* ── Empty state (Films emptyState), centred ──────────────────────────── */
+
+.map-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.stage[data-broadcast] .map-empty .title {
+  font-size: max(14px, calc(22 * var(--bc, 1px)));
+}
+
+.stage[data-broadcast] .map-empty .body {
+  font-size: max(13px, calc(16 * var(--bc, 1px)));
+  max-width: calc(480 * var(--bc, 1px));
+}
+
+/* ── Hover card (Films viewer/hover.ts): raised, a 3px rule on top in the
+   target's colour, placed once per target ─────────────────────────────── */
+
+.map-tip {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 220px;
+  padding: 8px;
+  pointer-events: none;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--border);
+  font: var(--t-sm);
+  color: var(--text);
+}
+
+.map-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-tip-name {
+  min-width: 0;
+  font-weight: 600;
+}
+
+.map-tip-side {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.map-tip-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.map-tip-vitals {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-tip-num {
+  flex: none;
+  width: 24px;
+  text-align: right;
+}
+
+.map-tip-bar {
+  display: block;
+  flex: 1;
+  height: 4px;
+  overflow: hidden;
+  background: var(--vital-track);
+  border-radius: var(--radius-mark);
+}
+
+.map-tip-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.map-tip-bar.shield > .map-tip-fill {
+  background: var(--vital-shield);
+}
+
+.map-tip-bar.health > .map-tip-fill {
+  background: var(--vital-health);
+}
+
+.map-tip-bar.incoming > .map-tip-fill {
+  background: var(--timer-incoming);
+}
+
+/* Kills, deaths and assists: separate cells, a caption over nothing, the
+   number beside it. */
+.map-tip-kda {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.map-tip-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.map-tip-stat-v {
+  color: var(--text);
+}
+
+/* ── The data view's legend and readout (dataview.js), bottom left ───── */
+
+.map-data {
+  position: absolute;
+  z-index: 4;
+  left: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 300px;
+  max-width: calc(100% - 16px);
+  padding: 8px;
+  background: var(--bg-alpha);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--link);
+  font: var(--t-sm);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.map-data[hidden] {
+  display: none;
+}
+
+.map-data-title {
+  font-weight: 600;
+}
+
+.map-data-keys {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+}
+
+.map-data-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.map-data-key[data-absent] {
+  opacity: 0.35;
+}
+
+.map-data-swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  background: var(--swatch, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.map-data-swatch.small {
+  width: 10px;
+  height: 10px;
+}
+
+.map-data-swatch.nav {
+  background: repeating-linear-gradient(45deg, var(--swatch) 0 2px, rgba(0, 0, 0, 0.45) 2px 4px), var(--swatch);
+}
+
+/* A limit as the map draws it: a dark area outlined in its colour, the
+   outline dashed where a rule infers it. */
+.map-data-swatch.limit {
+  background: rgba(11, 16, 22, 0.7);
+  border: 1.5px solid var(--swatch);
+}
+
+.map-data-swatch.limit.inferred {
+  border-style: dashed;
+}
+
+/* The limits, one to a line, each with where it comes from. */
+.map-data-limits {
+  display: grid;
+  gap: 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.map-data-source {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted);
+}
+
+/* The moves reach is inferred by: one line, always. */
+.map-data-moves {
+  height: 16px;
+  line-height: 16px;
+  color: var(--muted);
+}
+
+.map-data-note {
+  color: var(--warn);
+}
+
+.map-data-read {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.map-data-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 18px;
+}
+
+.map-data-name {
+  min-width: 0;
+  font-weight: 600;
+}
+
+.map-data-line {
+  height: 16px;
+  color: var(--muted);
+}
+
+/* The rule: three lines, always, so the box keeps its size. */
+.map-data-rule {
+  display: -webkit-box;
+  height: 48px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: 16px;
+  color: var(--muted);
+}

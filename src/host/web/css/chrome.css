@@ -1,0 +1,1019 @@
+/* The chrome around the stage (js/chrome.js): app bar, masthead, ribbon
+   and live bar, Films' bars stacked edge to edge a hairline apart,
+   plus the bottom sheets, popovers and slider they open. Every live value
+   sits in a fixed slot, so nothing here moves while numbers change. */
+
+/* ── Fixed slots: templates and words stacked in one grid cell ────────── */
+
+.fx {
+  display: inline-grid;
+  grid-template-columns: max-content;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx > * {
+  grid-area: 1 / 1;
+}
+
+.fx-size {
+  visibility: hidden;
+}
+
+/* Templates and stacked words are drawn here, not written as text. */
+.fx-size::before,
+.fx-opt::after,
+.cell-end > .won::after {
+  content: attr(data-t);
+}
+
+.fx-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+.fx-opt[data-on] {
+  visibility: visible;
+}
+
+/* Values and words fill their slot (grid items stretch) and align with
+   text-align and justify-content, so even their own boxes never resize. */
+
+/* ── App bar (Films appHeader): one 44px row that never wraps ─────────── */
+
+.appbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  height: var(--bar-app);
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  font: var(--t-sm);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.appbar .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+  font: var(--t-h2);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.appbar .brand > span {
+  white-space: normal;
+  line-height: 16px;
+}
+
+.appbar .brand-tag {
+  text-transform: uppercase;
+}
+
+.appbar-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  margin-left: auto;
+}
+
+/* ── Masthead (Films masthead): identity left, summary right, 48px ────── */
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  height: var(--bar-mast);
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  font: var(--t-sm);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.mast-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mast-title {
+  margin: 0;
+  font: var(--t-title);
+  color: var(--text);
+  min-width: 0;
+}
+
+.mast-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 16px;
+  min-width: 0;
+  overflow: hidden;
+  font: var(--t-xs);
+  line-height: 16px;
+  color: var(--muted);
+}
+
+.mast-lead {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--text);
+}
+
+.mast-mode {
+  display: inline-flex;
+  flex: none;
+}
+
+.mast-mode:empty,
+.mast-mode:has(> .mode-icon[hidden]) {
+  display: none;
+}
+
+.mast-facts {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Session info: an inline button in the line (Films' Match info). The
+   line clips at 16px, so its focus ring is drawn inside the button, which
+   stands 4px wider each side than its text and gives that room back. */
+.mast-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 16px;
+  margin: 0 -4px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mast-info > .mast-info-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.masthead .mast-line .mast-info:focus-visible {
+  outline-offset: -2px;
+}
+
+.mast-skel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mast-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin-left: auto;
+}
+
+.mast-right > * {
+  height: var(--h-mast);
+}
+
+.mast-cells {
+  display: contents;
+}
+
+/* A score cell's line: name, score and the end slot centred on one line
+   (Films cellLine). */
+.masthead .cell-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.masthead .cell-line > .fx {
+  text-align: right;
+}
+
+/* Alive pips, or 'Won' after the match, in one slot of a fixed width:
+   two rows of four squares at most, centred like the rest of the line. */
+.cell-end {
+  display: inline-grid;
+  align-items: center;
+  width: 30px;
+}
+
+.cell-end > * {
+  grid-area: 1 / 1;
+}
+
+.cell-end > .won {
+  color: var(--ok);
+}
+
+.pips {
+  display: grid;
+  grid-template-columns: repeat(4, 6px);
+  grid-auto-rows: 6px;
+  gap: 2px;
+  align-content: center;
+  height: 14px;
+}
+
+.pips > i {
+  display: block;
+  box-shadow: inset 0 0 0 1px var(--dim);
+}
+
+.pips > i[data-alive] {
+  background: var(--team-color, var(--muted));
+  box-shadow: none;
+}
+
+.pips-count {
+  grid-column: 1 / -1;
+  font: var(--t-xs);
+  line-height: 14px;
+  color: var(--muted);
+}
+
+.cell-rank {
+  color: var(--faint);
+}
+
+.masthead .cell-name-fixed {
+  width: 96px;
+}
+
+/* The clock: a neutral cell, the surface and no rule (Films). */
+.masthead .mast-clock {
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.masthead .mast-clock .cell-value {
+  color: var(--text);
+  text-align: center;
+}
+
+/* The state tag at the masthead's height, as wide as its longest word. */
+.masthead .mast-tag {
+  justify-content: center;
+  padding: 0 8px;
+}
+
+.mast-tag .fx-opt {
+  justify-content: center;
+}
+
+/* ── Ribbon (Films ribbon): captioned groups of flat commands ─────────── */
+
+.ribbon {
+  display: flex;
+  align-items: stretch;
+  flex: none;
+  min-height: calc(var(--h-sm) + 6px);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rgroups {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 8px;
+}
+
+/* A group is a full-height column whose right edge is the separator. */
+.rgroup {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  align-self: stretch;
+  flex: none;
+  padding: 3px 8px;
+  border-right: 1px solid var(--line);
+}
+
+.rcmds {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rcaption {
+  height: 12px;
+  font: var(--t-xs);
+  line-height: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.ribbon:not([data-mode="full"]) .rcaption,
+.ribbon:not([data-mode="full"]) .rend-spacer {
+  display: none;
+}
+
+/* A command: tool sm, padding 0 6px, 14px icon. */
+.ribbon .btn[data-variant="tool"],
+.ribbon .btn[data-variant="ghost"] {
+  padding: 0 6px;
+}
+
+.ribbon .btn.btn-icon {
+  width: var(--h);
+  padding: 0;
+}
+
+/* A select after a command stands 4px off it (Films preset select). */
+.ribbon .rselect {
+  margin-left: 4px;
+}
+
+.ribbon .rcmds > .rselect:first-child,
+.rsheet-slot > .rselect {
+  margin-left: 0;
+}
+
+.rselect-map .value {
+  max-width: 96px;
+}
+
+.zoom-value .fx {
+  text-align: center;
+}
+
+/* A drop command's badge, pinned out of the flow (never adds width). */
+.rdrop {
+  position: relative;
+}
+
+.rbadge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 6px;
+  height: 6px;
+  padding: 0 2px;
+  background: var(--accent);
+  color: var(--text);
+  font: var(--t-badge);
+  pointer-events: none;
+}
+
+.rbadge[data-count] {
+  min-width: 11px;
+  height: 11px;
+}
+
+/* Icons mode: toggles and actions show only their icon. */
+.ribbon[data-mode="icons"] .rgroups [data-cmd="toggle"] > .label,
+.ribbon[data-mode="icons"] .rgroups [data-cmd="action"]:not(.zoom-value) > .label {
+  display: none;
+}
+
+.ribbon[data-mode="icons"] .rgroups [data-cmd="toggle"],
+.ribbon[data-mode="icons"] .rgroups [data-cmd="action"]:not(.zoom-value) {
+  width: var(--h);
+  padding: 0;
+}
+
+/* More: its own column with a left hairline. */
+.rend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin-left: auto;
+  flex: none;
+  align-self: stretch;
+  padding: 3px 8px;
+  border-left: 1px solid var(--line);
+}
+
+.rend-spacer {
+  height: 12px;
+}
+
+/* Sheet mode (phones): [Layers] [Filter] | View select |. */
+.rsheet {
+  display: none;
+  align-items: stretch;
+  align-self: stretch;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ribbon[data-mode="sheet"] .rgroups {
+  display: none;
+}
+
+.ribbon[data-mode="sheet"] .rsheet {
+  display: flex;
+}
+
+.rsheet-cmds {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 3px 8px 3px 16px;
+  border-right: 1px solid var(--line);
+}
+
+.rsheet-slot {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 3px 8px;
+  border-right: 1px solid var(--line);
+}
+
+.rsheet-slot > .rselect {
+  min-width: 0;
+}
+
+/* ── Live bar: the timeline's slot and look ───────────────────────────── */
+
+.livebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  height: calc(var(--bar-timeline) + env(safe-area-inset-bottom, 0px));
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px));
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+  font: var(--t-sm);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* The feed's word, right-aligned in its slot so its dot (drawn before
+   it, in the tone) always sits beside it. */
+.live-state {
+  --dot: var(--faint);
+  color: var(--text);
+}
+
+.live-state[data-tone="ok"] { --dot: var(--ok); }
+.live-state[data-tone="warn"] { --dot: var(--warn); }
+.live-state[data-tone="err"] { --dot: var(--err); }
+.live-state[data-tone="info"] { --dot: var(--link); }
+
+.live-state .fx-opt {
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.live-state .fx-opt::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--dot);
+}
+
+.live-state[data-busy] .fx-opt::before {
+  background: var(--link);
+  animation: pulse 1.1s ease-in-out infinite alternate;
+}
+
+.live-clock {
+  margin-left: 4px;
+  color: var(--text);
+}
+
+.live-fresh {
+  text-align: right;
+}
+
+.live-fresh[data-tone="warn"] {
+  color: var(--warn);
+}
+
+/* ── Floating: Session info, Elevation, the slice slider ──────────────── */
+
+.ch-pop {
+  display: flex;
+  flex-direction: column;
+  width: min(440px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+.ch-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  min-height: 48px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.ch-pop-head > h2 {
+  margin: 0;
+  font: var(--t-h2);
+  color: var(--text);
+}
+
+.ch-pop .kv > section:first-child > .kv-band {
+  border-top: 0;
+}
+
+.ch-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ch-elev-pop {
+  width: 240px;
+}
+
+.ch-elev .menu {
+  min-width: 0;
+  background: transparent;
+}
+
+.ch-elev-range {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--line);
+}
+
+.ch-elev-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ch-elev-value {
+  font: var(--t-sm);
+  color: var(--text);
+}
+
+.ch-elev-value {
+  text-align: right;
+}
+
+.ch-elev-value[data-mode="all"] {
+  color: var(--muted);
+}
+
+/* The Markers panel: a captioned menu per choice, a hairline between. */
+.ch-markers-pop {
+  width: 220px;
+}
+
+.ch-markers .menu {
+  min-width: 0;
+  background: transparent;
+}
+
+.ch-markers .menu + .menu {
+  border-top: 1px solid var(--line);
+}
+
+/* The Colors panel: per team a head (its colour, its name, what it is set
+   to, Reset) over Halo Infinite's sixteen colours as 20px swatches in two
+   rows, each column a pair, lighter over deeper. */
+.ch-colors-pop {
+  width: 252px;
+}
+
+.ch-colors-team {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 10px;
+}
+
+.ch-colors-team + .ch-colors-team {
+  border-top: 1px solid var(--line);
+}
+
+.ch-colors-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ch-colors-head .swatch {
+  width: 10px;
+  height: 10px;
+}
+
+.ch-colors-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: var(--t-h2);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.ch-colors-value {
+  font: var(--t-sm);
+  color: var(--muted);
+  text-align: right;
+}
+
+.ch-colors-grid {
+  display: grid;
+  grid-template-rows: repeat(2, 20px);
+  grid-auto-columns: 20px;
+  grid-auto-flow: column;
+  gap: 6px 8px;
+}
+
+.ch-color {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--swatch);
+  cursor: pointer;
+}
+
+.ch-color:hover {
+  border-color: var(--muted);
+}
+
+/* The colour the team has: a ring in the text colour, outside the swatch
+   so the swatch itself keeps its size. */
+.ch-color[aria-pressed="true"],
+.ch-color-custom[data-pressed] {
+  border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--bg), 0 0 0 3px var(--text);
+}
+
+/* The map floor's row, under the teams: the presets in one row, then the
+   picker for any other colour, a swatch that shows a spectrum until a
+   colour of its own is picked. */
+.ch-colors-floor {
+  border-top: 1px solid var(--line);
+}
+
+.ch-colors-row {
+  grid-template-rows: 20px;
+}
+
+.ch-color-custom {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--swatch, conic-gradient(#d9534f, #e8c547, #4caf6a, #3fa7c9, #6a5acd, #c74fa3, #d9534f));
+}
+
+/* The native picker, invisible over the swatch: the swatch is what shows,
+   the input what is clicked and focused. */
+.ch-color-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ch-color-custom:has(.ch-color-input:focus-visible) {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+.ch-colors-note {
+  margin: 0;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--line);
+  font: var(--t-xs);
+  color: var(--muted);
+}
+
+/* In a phone sheet, the sheet's 16px gutter. */
+.ch-sheet .ch-colors-team,
+.ch-sheet .ch-colors-note {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* In a phone sheet the panel takes the sheet's 16px gutter. */
+.ch-sheet .ch-elev .menuitem {
+  padding: 0 16px;
+}
+
+.ch-sheet .ch-elev-range {
+  padding: 8px 16px 12px;
+}
+
+/* The slice slider, after the timeline's track. */
+.ch-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ch-range::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(var(--link), var(--link)) 0 / var(--fill, 0%) 100% no-repeat, var(--dim);
+}
+
+.ch-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 0;
+  background: var(--text);
+}
+
+.ch-range::-moz-range-track {
+  height: 4px;
+  background: var(--dim);
+}
+
+.ch-range::-moz-range-progress {
+  height: 4px;
+  background: var(--link);
+}
+
+.ch-range::-moz-range-thumb {
+  width: 10px;
+  height: 16px;
+  border: 0;
+  border-radius: 0;
+  background: var(--text);
+}
+
+.ch-range:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Bottom sheet (Films sheet), modal ────────────────────────────────── */
+
+.ch-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 41;
+  background: var(--bg-alpha);
+}
+
+.ch-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 42;
+  display: flex;
+  flex-direction: column;
+  height: 50vh;
+  height: 50dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--raised);
+  border-top: 1px solid var(--border);
+  transition: height 0.18s ease-out;
+}
+
+.ch-sheet[data-size="full"] {
+  height: calc(100vh - 56px);
+  height: calc(100dvh - 56px);
+}
+
+.ch-sheet-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 100%;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.ch-sheet-handle > span {
+  display: block;
+  width: 32px;
+  height: 4px;
+  background: var(--dim);
+}
+
+.ch-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-height: 24px;
+  padding: 0 12px 4px 16px;
+  font: var(--t-h2);
+  color: var(--text);
+}
+
+.ch-sheet-head > h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font: inherit;
+}
+
+.ch-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.ch-list {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 12px;
+}
+
+.ch-cap {
+  padding: 10px 16px 4px;
+}
+
+.ch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 16px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: var(--t-md);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ch-row[aria-pressed="true"],
+.ch-row[aria-checked="true"] {
+  border-left-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.ch-row[aria-checked="true"] > .icon {
+  color: var(--link);
+}
+
+.ch-row:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ch-row > .icon,
+.ch-row-icon {
+  flex: none;
+  width: 16px;
+}
+
+.ch-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ch-row-sub {
+  font: var(--t-xs);
+  color: var(--muted);
+}
+
+.ch-row-value {
+  flex: none;
+  max-width: 40%;
+  font: var(--t-sm);
+  color: var(--muted);
+}
+
+/* ── Hover, only where there is a hovering pointer ────────────────────── */
+
+@media (hover: hover) {
+  .mast-info:hover {
+    color: var(--text);
+  }
+
+  .ch-row:hover:not(:disabled):not([aria-pressed="true"]):not([aria-checked="true"]) {
+    background: var(--surface);
+  }
+}
+
+/* ── Phones ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 639px) {
+  .appbar-end .btn > .label {
+    display: none;
+  }
+
+  .appbar-end .btn {
+    width: var(--h);
+    padding: 0;
+  }
+
+  .appbar-end .btn[data-shortcut] {
+    width: auto;
+    padding: 0 4px;
+    gap: 4px;
+  }
+
+  /* Phones: the pips go. After the match 'Won' and the phase tag stay,
+     and the elapsed clock gives them its room. */
+  .cell-end:not([data-won]) {
+    display: none;
+  }
+
+  .mast-score[data-over] > .mast-clock {
+    display: none;
+  }
+
+  /* Phones: the panel sheet's head carries the feed's state and the pause
+     toggle, and the masthead the clock, so the live bar's row goes to the
+     map. */
+  .livebar {
+    display: none;
+  }
+
+  .masthead .mast-tag:not([data-word="Post-match"]) {
+    display: none;
+  }
+}
+
+/* ── Touch: 32px targets stay square ──────────────────────────────────── */
+
+@media (pointer: coarse) {
+  .ribbon .btn.btn-icon,
+  .ribbon[data-mode="icons"] .rgroups [data-cmd="toggle"],
+  .ribbon[data-mode="icons"] .rgroups [data-cmd="action"]:not(.zoom-value),
+  .livebar .btn.btn-icon {
+    min-width: 32px;
+  }
+
+  .ch-sheet-handle {
+    height: 24px;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 639px) {
+  .appbar-end .btn {
+    min-width: 32px;
+  }
+}

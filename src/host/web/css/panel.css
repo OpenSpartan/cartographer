@@ -1,0 +1,1196 @@
+/* The side panel and the legend bar (js/panel.js), after Films' viewer
+   sidebar (compact tabs over scrolling panes, feed rows, the player card)
+   and its legend (team groups of player chips). Below 640px the panel is a
+   persistent bottom sheet and the legend gives way to its peek.
+
+   Nothing here moves on its own: every row has one height in every state,
+   number columns have fixed widths with tabular figures, marks that come
+   and go (status icons, progress lines, vitals) turn invisible rather than
+   leave the layout, and fills scale with transform. */
+
+/* Turn a part invisible without changing any box (js setShown, setBar). */
+.panel [data-off],
+.legend [data-off] {
+  visibility: hidden;
+}
+
+/* ── Panel frame ──────────────────────────────────────────────────────── */
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 340px;
+  min-width: 280px;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.sheet,
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* The sheet's handle and peek exist only on phones. */
+.sheet-handle,
+.sheet-head,
+.sheet-scrim {
+  display: none;
+}
+
+/* Compact tabs (Films): the selected tab takes the room and shows its
+   label. The others are their icon and count. */
+.panel .tabs[data-compact] .tab {
+  flex: 0 1 auto;
+}
+
+.panel .tabs[data-compact] .tab[aria-selected="true"] {
+  flex: 1 0 auto;
+}
+
+.panel .tabs[data-compact] .tab:not([aria-selected="true"]) > .truncate {
+  display: none;
+}
+
+.panel .tab > .count:not(:empty) {
+  min-width: 2ch;
+}
+
+/* A pane fills the panel under the tabs, and only it scrolls. */
+.pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  outline: none;
+}
+
+.pane .empty-state {
+  padding: 32px 16px;
+}
+
+.pane-skel {
+  display: flex;
+  flex-direction: column;
+}
+
+.skel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--row-table);
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Bot and Observer after a name (Films botTag). */
+.ptag {
+  flex: none;
+  font: var(--t-xs);
+  color: var(--muted);
+}
+
+.panel .swatch,
+.legend .swatch {
+  background: var(--team-color, var(--team-none));
+}
+
+/* ── Players: the scoreboard ──────────────────────────────────────────── */
+
+.roster-head,
+.roster-row {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) 12px repeat(3, 24px) 36px;
+  column-gap: 8px;
+  align-items: center;
+  padding: 0 12px;
+}
+
+/* K D A take three digits, and Life takes m:ss up to 59:59. */
+.roster[data-score] .roster-head,
+.roster[data-score] .roster-row {
+  grid-template-columns: 8px minmax(0, 1fr) 12px repeat(3, 24px) 40px 36px;
+}
+
+.roster:not([data-score]) .col-score {
+  display: none;
+}
+
+/* Numbered players (the map's numbers): the colour square widens to hold
+   the number, two figures wide, the same in every row. */
+.roster[data-numbers] .roster-head,
+.roster[data-numbers] .roster-row {
+  grid-template-columns: 18px minmax(0, 1fr) 12px repeat(3, 24px) 36px;
+}
+
+.roster[data-numbers][data-score] .roster-head,
+.roster[data-numbers][data-score] .roster-row {
+  grid-template-columns: 18px minmax(0, 1fr) 12px repeat(3, 24px) 40px 36px;
+}
+
+.roster[data-numbers] .roster-row .swatch,
+.legend[data-numbers] .lg-chip .swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 16px;
+  font: var(--t-xs);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--team-ink, var(--text));
+}
+
+.roster-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: var(--h-sm);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.roster-head > :first-child {
+  grid-column: 1 / 4;
+}
+
+.roster-head > :not(:first-child),
+.roster-row .num {
+  text-align: right;
+}
+
+/* A fixed line box: an empty cell (Life before a first death) is as tall
+   as a filled one, so filling it in moves nothing. */
+.roster-row .num {
+  height: 16px;
+  line-height: 16px;
+}
+
+.roster-band {
+  height: var(--bar-band);
+  border-bottom: 1px solid var(--line);
+}
+
+.roster-band .tname {
+  min-width: 0;
+  color: var(--text);
+}
+
+/* Three digits reserved, so a score turning 100 moves nothing. */
+.roster-band .tscore {
+  flex: none;
+  min-width: 3ch;
+  font: var(--t-h2);
+  line-height: 1;
+  color: var(--text);
+}
+
+.roster-band .twon {
+  color: var(--ok);
+}
+
+.roster-band .talive {
+  flex: none;
+  font: var(--t-xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.roster-row {
+  position: relative;
+  width: 100%;
+  height: var(--row-table);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: var(--t-sm);
+  text-align: left;
+  cursor: pointer;
+  outline-offset: -2px;
+}
+
+.rname {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rname > .name {
+  min-width: 0;
+}
+
+/* The status slot: one 12px mark, following (link) or dead (faint). */
+.rstatus {
+  display: grid;
+  width: 12px;
+  height: 12px;
+}
+
+.rstatus > .icon {
+  grid-area: 1 / 1;
+}
+
+.rs-follow {
+  color: var(--link);
+}
+
+.rs-dead {
+  color: var(--faint);
+}
+
+/* Dead rows go faint, as Films' past feed rows do. */
+.roster-row[data-dead] {
+  color: var(--faint);
+}
+
+.roster-row[data-dead] .swatch {
+  opacity: 0.6;
+}
+
+.roster-row[data-selected] {
+  background: var(--accent-bg);
+  box-shadow: inset 0 0 0 1px var(--link);
+}
+
+/* The observed player: their square ringed in white, as their mark is on
+   the map. A shadow, so nothing moves. */
+.roster-row[data-observed] .swatch,
+.lg-chip[data-observed] .swatch {
+  box-shadow: 0 0 0 1px var(--bg), 0 0 0 2px var(--text);
+}
+
+/* Vitals on phones only (the legend shows them elsewhere): shield over
+   health, 2px tracks along the row's foot, always drawn. */
+.roster-row .vitals {
+  display: none;
+  position: absolute;
+  left: 28px;
+  right: 12px;
+  bottom: 4px;
+  height: 6px;
+}
+
+.roster-row .vitals > span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+  border-radius: var(--radius-mark);
+  background: var(--vital-track);
+}
+
+.roster-row .vtrack-s {
+  top: 0;
+}
+
+.roster-row .vtrack-h {
+  bottom: 0;
+}
+
+.roster-row .vitals i {
+  display: block;
+  height: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.roster-row .vitals .shield {
+  background: var(--vital-shield);
+}
+
+.roster-row .vitals .shield[data-over] {
+  background: var(--vital-overshield);
+}
+
+.roster-row .vitals .health {
+  background: var(--vital-health);
+}
+
+/* ── Timers: spawn pads as feed rows ──────────────────────────────────── */
+
+.timer-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 64px;
+  column-gap: 8px;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: var(--t-sm);
+  text-align: left;
+  cursor: pointer;
+  outline-offset: -2px;
+}
+
+.ticon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  color: var(--pad-weapon);
+}
+
+.timer-row[data-category="equipment"] .ticon {
+  color: var(--pad-equipment);
+}
+
+.ttext {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tname {
+  line-height: 16px;
+}
+
+.tsub {
+  font: var(--t-xs);
+  line-height: 14px;
+  color: var(--muted);
+}
+
+/* One box for every value: a countdown, 'Ready', a tag. */
+.tvalue {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 20px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.timer-row[data-value="count"] .tvalue {
+  font: var(--t-num);
+  line-height: 20px;
+  color: var(--timer-incoming);
+}
+
+/* The next pad to spawn: the 3px rule and a lift, in place. */
+.timer-row[data-next] {
+  background: var(--surface);
+  box-shadow: inset 3px 0 0 var(--timer-incoming);
+}
+
+.timer-row[data-state="restricted"] .tname {
+  color: var(--muted);
+}
+
+/* The progress line under an incoming pad's text: always there, shown
+   while incoming, its fill scaled. */
+.tprogress {
+  position: absolute;
+  left: 60px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+  background: var(--vital-track);
+}
+
+.tprogress > i,
+.card-progress > i {
+  display: block;
+  height: 100%;
+  background: var(--timer-incoming);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.timer-row[data-selected] {
+  background: var(--accent-bg);
+  box-shadow: inset 0 0 0 1px var(--link);
+}
+
+.timer-row[data-selected][data-next] {
+  box-shadow: inset 3px 0 0 var(--timer-incoming), inset 0 0 0 1px var(--link);
+}
+
+/* ── Selection: the card ──────────────────────────────────────────────── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font: var(--t-sm);
+}
+
+.card-head {
+  gap: 12px;
+  padding: 12px 8px 12px 12px;
+}
+
+/* A pad's rule: the border colour, the link colour while incoming. */
+.card-head[data-state] {
+  --team-color: var(--border);
+}
+
+.card-head[data-state="incoming"] {
+  --team-color: var(--timer-incoming);
+}
+
+.card-lead {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 24px;
+  color: var(--muted);
+}
+
+.card-icon[data-category="weapon"] {
+  color: var(--pad-weapon);
+}
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pad-equipment);
+}
+
+.card-title {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.card-name {
+  font: var(--t-h2);
+  color: var(--text);
+}
+
+.card-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.card-sub > .ptag {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Follow and Only, joined across the card (Films card actions). */
+.card-acts {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.card-acts > .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: var(--h-lg);
+  border: 0;
+}
+
+.card-acts > .btn + .btn {
+  border-left: 1px solid var(--line);
+}
+
+.card-stats {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+
+/* Films statStrip: equal cells in a frame, the value over a caption. */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr));
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.stat + .stat {
+  border-left: 1px solid var(--line);
+}
+
+.stat-value {
+  height: 20px;
+  font: var(--t-num);
+  line-height: 20px;
+  color: var(--text);
+}
+
+.stat-value[data-incoming] {
+  color: var(--timer-incoming);
+}
+
+.card-progress {
+  display: block;
+  height: 2px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.card-progress[data-active] {
+  background: var(--vital-track);
+}
+
+.card .band > h3 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+/* Vitals: a caption, a 4px track and the reading (Films hover card). */
+.vrows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 16px;
+}
+
+.vlabel {
+  flex: none;
+  width: 48px;
+}
+
+.vtrack {
+  flex: 1 1 auto;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-mark);
+  background: var(--vital-track);
+}
+
+.vtrack > i {
+  display: block;
+  height: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.vtrack > .shield {
+  background: var(--vital-shield);
+}
+
+.vtrack > .shield[data-over] {
+  background: var(--vital-overshield);
+}
+
+.vtrack > .health {
+  background: var(--vital-health);
+}
+
+.vnum {
+  flex: none;
+  width: 28px;
+  height: 16px;
+  line-height: 16px;
+  color: var(--text);
+  text-align: right;
+}
+
+/* Values fill their cell and keep one line's height even when empty, so
+   a changing reading never resizes a box. */
+.card .kv dd > .kv-value,
+.card .kv dd > .kv-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 16px;
+  line-height: 16px;
+}
+
+/* Rows hide while empty (js factGrid), so the last shown one is marked. */
+.card .kv dl > :not([data-last]) {
+  border-bottom: 1px solid var(--line);
+}
+
+.card .kv dl > [data-last] {
+  border-bottom: 0;
+}
+
+.kv-copy {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kv-copy > .kv-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kv-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The copy button's moment of feedback (Films copyChip). */
+.copy-btn[data-copied="ok"] > .icon {
+  color: var(--ok);
+}
+
+.copy-btn[data-copied="err"] > .icon {
+  color: var(--err);
+}
+
+/* The raw record behind a disclosure (Films XUID row look). */
+.raw {
+  border-top: 1px solid var(--line);
+}
+
+.raw-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 8px;
+}
+
+.raw-toggle {
+  display: inline-flex;
+  text-align: left;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-sm);
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.raw-toggle > .icon {
+  transform: rotate(-90deg);
+}
+
+.raw-toggle[aria-expanded="true"] > .icon {
+  transform: none;
+}
+
+.raw-pre {
+  height: 280px;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: auto;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ── Legend bar ───────────────────────────────────────────────────────── */
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  height: var(--bar-legend);
+  padding: 0 16px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+/* Groups shrink with the bar down to their chips' minimum (--n, set by js:
+   the chip count, and the header is a fixed 104px), so the chips' width
+   follows the viewport, never the data. */
+.lg-group {
+  display: flex;
+  align-items: stretch;
+  flex: 0 1 auto;
+  min-width: calc(var(--n, 1) * 100px + 110px);
+  min-height: 32px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+
+/* The group's header: a team band that shows only that team. */
+.lg-group[data-nohead] {
+  min-width: calc(var(--n, 1) * 100px + 6px);
+}
+
+.lg-head {
+  flex: none;
+  width: 124px;   /* the emblem, the name and a three-digit score */
+  gap: 8px;
+  text-align: left;
+  padding: 0 12px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  font: var(--t-sm);
+}
+
+.lg-head .caps {
+  min-width: 0;
+  color: var(--text);
+}
+
+.lg-score {
+  flex: none;
+  min-width: 3ch;
+  font: var(--t-h2);
+  line-height: 1;
+  color: var(--text);
+}
+
+.lg-head[aria-pressed="true"] {
+  background: var(--accent-bg);
+}
+
+/* 176px chips at most, 96px at least, 4px apart inside 4px of padding. */
+.lg-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
+  width: calc(var(--n, 1) * 180px + 4px);
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.lg-empty {
+  font: var(--t-sm);
+  color: var(--muted);
+}
+
+/* A player chip: its width comes from the bar (equal shares between 96
+   and 176px), so a value change never shoves the next. The name starts
+   6px after the swatch, with the room a name needs (the roster and the
+   hover card say who is a bot). Shield over health along its foot (Films
+   legend chip). */
+.lg-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 96px;
+  max-width: 176px;
+  text-align: left;
+  height: var(--h-sm);
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: var(--t-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  outline-offset: -2px;
+}
+
+.lg-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A fixed width, so the name beside it never truncates differently. */
+.lg-kd {
+  flex: none;
+  width: 32px;
+  overflow: hidden;
+  color: var(--muted);
+  text-align: right;
+}
+
+.lg-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.lg-bar[data-empty] {
+  visibility: hidden;
+}
+
+.lg-bar.shield {
+  bottom: 2px;
+  background: var(--vital-shield);
+}
+
+.lg-bar.shield[data-over] {
+  background: var(--vital-overshield);
+}
+
+.lg-bar.health {
+  bottom: 0;
+  background: var(--vital-health);
+}
+
+/* Followed: the link outline inside the chip (Films follow). */
+.lg-chip[aria-pressed="true"] {
+  outline: 2px solid var(--link);
+}
+
+.lg-chip[data-selected] {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+
+.lg-chip[data-dead] .lg-name,
+.lg-chip[data-dead] .lg-kd {
+  color: var(--faint);
+}
+
+.lg-chip[data-dead] .swatch {
+  opacity: 0.6;
+}
+
+/* Players the team filter hides (Films: struck through at half). */
+.lg-chip[data-out] {
+  opacity: 0.5;
+}
+
+.lg-chip[data-out] .lg-name {
+  text-decoration: line-through;
+}
+
+/* Below 1280px the chips narrow toward 96px: they keep the name and the
+   vitals, and K-D stays in the Players tab (by viewport, never by data). */
+@media (max-width: 1279px) {
+  .lg-kd {
+    display: none;
+  }
+}
+
+/* Focus rings drawn inside, so a neighbour or the pane never clips them. */
+.roster-row:focus-visible,
+.timer-row:focus-visible,
+.lg-chip:focus-visible,
+.lg-head:focus-visible,
+.raw-toggle:focus-visible,
+.sheet-handle:focus-visible {
+  outline-offset: -2px;
+}
+
+/* ── Hover: the pointer here, or the map's hover on the same target ───── */
+
+.roster-row[data-hovered]:not([data-selected]),
+.timer-row[data-hovered]:not([data-selected]) {
+  background: var(--surface);
+}
+
+.lg-chip[data-hovered]:not([data-selected]) {
+  border-color: var(--muted);
+}
+
+@media (hover: hover) {
+  .roster-row:hover:not([data-selected]),
+  .timer-row:hover:not([data-selected]) {
+    background: var(--surface);
+  }
+
+  .panel .tab:hover:not([aria-selected="true"]),
+  .raw-toggle:hover {
+    color: var(--text);
+  }
+
+  .lg-chip:hover:not([data-selected]) {
+    border-color: var(--muted);
+  }
+
+  .lg-head:hover:not([aria-pressed="true"]) {
+    background: var(--raised);
+  }
+}
+
+/* ── A stale feed dims what it shows (the tabs stay readable) ─────────── */
+
+body[data-stale="true"] .pane,
+body[data-stale="true"] .peek-title,
+body[data-stale="true"] .peek-detail,
+body[data-stale="true"] .legend > * {
+  opacity: 0.55;
+}
+
+/* ── 640 to 959: a narrower panel ─────────────────────────────────────── */
+
+@media (min-width: 640px) and (max-width: 959px) {
+  .tsub-word {
+    display: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .panel {
+    width: 260px;
+    min-width: 260px;
+  }
+
+}
+
+/* ── Phones: a persistent bottom sheet above the live bar ─────────────── */
+
+@media (max-width: 639px) {
+  /* The panel keeps the peek's 44px in the page. The sheet grows up from
+     its foot over the map. */
+  .panel {
+    width: auto;
+    min-width: 0;
+    height: 44px;
+    border-left: 0;
+    background: none;
+  }
+
+  .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    flex: none;
+    height: 44px;
+    overflow: hidden;
+    background: var(--raised);
+    border-top: 1px solid var(--border);
+    transition: height 0.18s ease-out;
+  }
+
+  .sheet-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 100%;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .sheet-grip {
+    display: block;
+    width: 32px;
+    height: 4px;
+    background: var(--dim);
+  }
+
+  /* The head: one 28px row on the page's 16px gutter (the masthead's),
+     everything centred on it. Left the tab: its icon, its name as a
+     title and its count in a chip. Then what it is about, muted. At the
+     right edge the feed's state, a hairline and the pause toggle. */
+  .sheet-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: none;
+    height: 28px;
+    padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+    min-width: 0;
+    font: var(--t-sm);
+    color: var(--text);
+  }
+
+  .panel[data-sheet="peek"] .sheet-head {
+    cursor: pointer;
+  }
+
+  .peek-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+  }
+
+  .peek-icon {
+    display: flex;
+    color: var(--muted);
+  }
+
+  .peek-label {
+    font: var(--t-h2);
+    line-height: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  /* The count as a chip, apart from the name. Empty, it goes. */
+  .peek-count {
+    min-width: 20px;
+    height: 18px;
+    padding: 0 5px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font: var(--t-xs);
+    line-height: 16px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .peek-count:empty {
+    display: none;
+  }
+
+  .peek-detail {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--muted);
+  }
+
+  .peek-mark {
+    display: flex;
+    align-items: center;
+    flex: none;
+    color: var(--text);
+  }
+
+  .peek-mark:empty {
+    display: none;
+  }
+
+  .peek-mark > [data-icon="timers"] {
+    color: var(--timer-incoming);
+  }
+
+  .peek-text {
+    flex: 0 1 auto;
+    min-width: 0;
+    color: var(--text);
+  }
+
+  .peek-value {
+    flex: none;
+    color: var(--muted);
+  }
+
+  .peek-feed {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+  }
+
+  .peek-rule {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
+  }
+
+  .peek-feed .btn {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .peek-value[data-tone="incoming"] {
+    color: var(--timer-incoming);
+    font-weight: 600;
+  }
+
+  .sheet-body {
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+  }
+
+  .panel[data-sheet="peek"] .sheet-body {
+    display: none;
+  }
+
+  .sheet-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: var(--bg-alpha);
+  }
+
+  .sheet-scrim[hidden] {
+    display: none;
+  }
+
+  /* Vitals join the roster here, the legend being hidden: 44px rows with
+     the bars at the foot, under the name column only (clear of K D A,
+     Score and Life). */
+  .roster-row {
+    height: 44px;
+  }
+
+  .roster-row .vitals {
+    display: block;
+    left: 28px;
+    right: 172px;
+    bottom: 3px;
+    height: 5px;
+  }
+
+  .roster[data-score] .roster-row .vitals {
+    right: 220px;
+  }
+
+  .stat-value {
+    font: var(--t-lg);
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  .legend {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    transition: none;
+  }
+}

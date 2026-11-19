@@ -1,0 +1,2 @@
+# The launcher runs in cmd.exe, which wants Windows line endings.
+*.cmd text eol=crlf
